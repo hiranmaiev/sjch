@@ -1,0 +1,97 @@
+Sure! Here's a sample Java program using the JSch library to establish an SSH connection and execute interactive commands on a remote server. The program demonstrates how to open an SSH channel, send commands to the remote server, and read the output.
+
+First, you'll need to add the JSch library to your project. You can download it from [here](http://www.jcraft.com/jsch/).
+
+Here's the sample program:
+
+```java
+import com.jcraft.jsch.*;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.util.Properties;
+
+public class JSchExample {
+
+    public static void main(String[] args) {
+        String user = "your-username";
+        String host = "your-host";
+        String password = "your-password";
+        int port = 22;
+
+        try {
+            JSch jsch = new JSch();
+            Session session = jsch.getSession(user, host, port);
+            session.setPassword(password);
+
+            // Avoid asking for key confirmation
+            Properties properties = new Properties();
+            properties.put("StrictHostKeyChecking", "no");
+            session.setConfig(properties);
+
+            session.connect();
+
+            Channel channel = session.openChannel("shell");
+
+            // Get the input and output streams for the channel
+            OutputStream inputToChannel = channel.getOutputStream();
+            InputStream outputFromChannel = channel.getInputStream();
+
+            channel.connect();
+
+            // Send commands to the remote server
+            String command1 = "ls\n";
+            inputToChannel.write(command1.getBytes());
+            inputToChannel.flush();
+
+            String command2 = "pwd\n";
+            inputToChannel.write(command2.getBytes());
+            inputToChannel.flush();
+
+            // Close the input stream to signal the end of the commands
+            inputToChannel.close();
+
+            // Read the output from the remote server
+            BufferedReader reader = new BufferedReader(new InputStreamReader(outputFromChannel));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            // Close the channel and session
+            channel.disconnect();
+            session.disconnect();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+Replace `your-username`, `your-host`, and `your-password` with the appropriate values for your remote server.
+
+### Explanation:
+1. **Initialize JSch and Create a Session**: 
+   - Create a `JSch` instance and initialize a session with the username, host, and port.
+   - Set the password for the session.
+   - Set session properties to avoid host key confirmation prompts.
+
+2. **Connect to the Remote Server**:
+   - Connect the session to the remote server.
+
+3. **Open a Shell Channel**:
+   - Open a shell channel to interact with the remote server.
+
+4. **Send Commands**:
+   - Send commands to the remote server using the channel's output stream.
+
+5. **Read the Output**:
+   - Read the output from the remote server using the channel's input stream.
+
+6. **Close Connections**:
+   - Close the input stream to signal the end of commands.
+   - Close the channel and session.
+
+This example demonstrates how to execute interactive commands on a remote server using JSch. You can modify the commands and handle the output as needed for your specific use case.
