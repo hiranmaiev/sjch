@@ -1,0 +1,83 @@
+To add job parameters to the Jenkins build request, you need to modify the `server.build_job` call to include the parameters. The `python-jenkins` library allows you to pass parameters as a dictionary.
+
+Here's the updated script:
+
+```python
+import jenkins
+import time
+
+# Jenkins server details
+JENKINS_URL = 'http://your-jenkins-url'
+JENKINS_USERNAME = 'your-username'
+JENKINS_PASSWORD = 'your-password'
+JOB_NAME = 'your-job-name'
+
+# Job parameters
+job_parameters = {
+    'PARAM1': 'value1',
+    'PARAM2': 'value2',
+    # Add more parameters as needed
+}
+
+# Initialize Jenkins server connection
+server = jenkins.Jenkins(JENKINS_URL, username=JENKINS_USERNAME, password=JENKINS_PASSWORD)
+
+# Trigger a build with parameters
+queue_item_number = server.build_job(JOB_NAME, parameters=job_parameters)
+
+# Get build number from queue item
+def get_build_number_from_queue_item(queue_item_number):
+    queue_info = server.get_queue_item(queue_item_number)
+    if 'executable' in queue_info:
+        return queue_info['executable']['number']
+    return None
+
+# Wait for the build to be assigned a build number
+build_number = None
+while build_number is None:
+    build_number = get_build_number_from_queue_item(queue_item_number)
+    time.sleep(5)  # Sleep for 5 seconds before checking again
+
+# Function to get the build info
+def get_build_info(job_name, build_number):
+    try:
+        build_info = server.get_build_info(job_name, build_number)
+        return build_info
+    except jenkins.NotFoundException:
+        return None
+
+# Wait for the build to complete
+while True:
+    build_info = get_build_info(JOB_NAME, build_number)
+    if build_info is not None:
+        if not build_info['building']:
+            break
+    time.sleep(10)  # Sleep for 10 seconds before checking again
+
+# Print build result
+build_info = get_build_info(JOB_NAME, build_number)
+if build_info is not None:
+    print(f"Build Number: {build_info['number']}")
+    print(f"Build Status: {build_info['result']}")
+else:
+    print("Build information could not be retrieved.")
+```
+
+### Explanation of Changes:
+
+1. **Job Parameters:**
+   - `job_parameters`: A dictionary containing the parameters for the Jenkins job. Replace `'PARAM1'`, `'value1'`, `'PARAM2'`, and `'value2'` with your actual parameter names and values.
+
+2. **Trigger Build with Parameters:**
+   - `server.build_job(JOB_NAME, parameters=job_parameters)`: This triggers the Jenkins job with the specified parameters and returns a queue item number.
+
+3. **Get Build Number from Queue Item:**
+   - `get_build_number_from_queue_item(queue_item_number)`: A function that retrieves the build number from the queue item. It checks the queue item until the build number is assigned.
+
+4. **Wait for Build Number:**
+   - A `while` loop that waits until the build number is assigned. It checks the queue item every 5 seconds.
+
+5. **Rest of the Script:**
+   - The rest of the script remains the same, waiting for the build to complete and printing the build result.
+
+Replace `JENKINS_URL`, `JENKINS_USERNAME`, `JENKINS_PASSWORD`, `JOB_NAME`, and the job parameters with your actual Jenkins server details, job name, and parameters. This script will trigger the specified Jenkins job with the given parameters, wait until it is completed, and then print the build result.
