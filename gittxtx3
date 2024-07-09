@@ -1,0 +1,101 @@
+To handle Jenkins CSRF protection, you need to obtain a crumb before making any API requests. Here's the updated script that includes fetching the crumb and using it in the build request.
+
+```python
+import jenkins
+import time
+import requests
+from requests.auth import HTTPBasicAuth
+
+# Jenkins server details
+JENKINS_URL = 'http://your-jenkins-url'
+JENKINS_USERNAME = 'your-username'
+JENKINS_PASSWORD = 'your-password'
+JOB_NAME = 'your-job-name'
+
+# Job parameters
+job_parameters = {
+    'PARAM1': 'value1',
+    'PARAM2': 'value2',
+    # Add more parameters as needed
+}
+
+# Function to get Jenkins crumb
+def get_jenkins_crumb(jenkins_url, username, password):
+    crumb_url = f"{jenkins_url}/crumbIssuer/api/json"
+    response = requests.get(crumb_url, auth=HTTPBasicAuth(username, password))
+    response.raise_for_status()
+    crumb_data = response.json()
+    return crumb_data['crumb'], crumb_data['crumbRequestField']
+
+# Get Jenkins crumb
+crumb, crumb_field = get_jenkins_crumb(JENKINS_URL, JENKINS_USERNAME, JENKINS_PASSWORD)
+
+# Initialize Jenkins server connection with crumb
+server = jenkins.Jenkins(JENKINS_URL, username=JENKINS_USERNAME, password=JENKINS_PASSWORD)
+
+# Add crumb to Jenkins server headers
+server.jenkins_open = lambda req: requests.Request(
+    method=req.get_method(),
+    url=req.get_full_url(),
+    headers={crumb_field: crumb}
+).prepare().url
+
+# Trigger a build with parameters
+queue_item_number = server.build_job(JOB_NAME, parameters=job_parameters)
+
+# Get build number from queue item
+def get_build_number_from_queue_item(queue_item_number):
+    queue_info = server.get_queue_item(queue_item_number)
+    if 'executable' in queue_info:
+        return queue_info['executable']['number']
+    return None
+
+# Wait for the build to be assigned a build number
+build_number = None
+while build_number is None:
+    build_number = get_build_number_from_queue_item(queue_item_number)
+    time.sleep(5)  # Sleep for 5 seconds before checking again
+
+# Function to get the build info
+def get_build_info(job_name, build_number):
+    try:
+        build_info = server.get_build_info(job_name, build_number)
+        return build_info
+    except jenkins.NotFoundException:
+        return None
+
+# Wait for the build to complete
+while True:
+    build_info = get_build_info(JOB_NAME, build_number)
+    if build_info is not None:
+        if not build_info['building']:
+            break
+    time.sleep(10)  # Sleep for 10 seconds before checking again
+
+# Print build result
+build_info = get_build_info(JOB_NAME, build_number)
+if build_info is not None:
+    print(f"Build Number: {build_info['number']}")
+    print(f"Build Status: {build_info['result']}")
+else:
+    print("Build information could not be retrieved.")
+```
+
+### Explanation of Changes:
+
+1. **Import Requests:**
+   - Added `requests` and `HTTPBasicAuth` to handle HTTP requests and authentication.
+
+2. **Get Jenkins Crumb:**
+   - `get_jenkins_crumb`: A function to obtain the Jenkins crumb by making a request to the crumb issuer endpoint.
+   - `crumb_url`: URL to fetch the crumb from Jenkins.
+   - `response.raise_for_status()`: Ensures an exception is raised for HTTP errors.
+   - `response.json()`: Parses the response as JSON to extract the crumb.
+
+3. **Initialize Jenkins Connection with Crumb:**
+   - `server.jenkins_open`: Overridden to add the crumb to the Jenkins server headers for all API requests.
+
+4. **Trigger Build with Parameters and Crumb:**
+   - `server.build_job(JOB_NAME, parameters=job_parameters)`: Triggers the Jenkins job with the specified parameters.
+
+Replace `JENKINS_URL`, `JENKINS_USERNAME`, `JENKINS_PASSWORD`, `JOB_NAME`, and the job parameters with your actual Jenkins server details, job name, and parameters. This script will handle CSRF protection by fetching a crumb and including it in the build request, trigger the specified Jenkins job with the given parameters, wait until it is completed, and then print the build result.
