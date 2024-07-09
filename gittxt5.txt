@@ -1,0 +1,98 @@
+I apologize for the confusion. The `python-jenkins` library doesn't directly support adding custom headers like the crumb. Instead, you need to use the `requests` library to handle the crumb and make the build request manually.
+
+Here's the corrected script using `requests` for the build request and `python-jenkins` for the rest:
+
+```python
+import jenkins
+import time
+import requests
+from requests.auth import HTTPBasicAuth
+
+# Jenkins server details
+JENKINS_URL = 'http://your-jenkins-url'
+JENKINS_USERNAME = 'your-username'
+JENKINS_PASSWORD = 'your-password'
+JOB_NAME = 'your-job-name'
+
+# Job parameters
+job_parameters = {
+    'PARAM1': 'value1',
+    'PARAM2': 'value2',
+    # Add more parameters as needed
+}
+
+# Function to get Jenkins crumb
+def get_jenkins_crumb(jenkins_url, username, password):
+    crumb_url = f"{jenkins_url}/crumbIssuer/api/json"
+    response = requests.get(crumb_url, auth=HTTPBasicAuth(username, password))
+    response.raise_for_status()
+    crumb_data = response.json()
+    return crumb_data['crumb'], crumb_data['crumbRequestField']
+
+# Get Jenkins crumb
+crumb, crumb_field = get_jenkins_crumb(JENKINS_URL, JENKINS_USERNAME, JENKINS_PASSWORD)
+
+# Trigger a build with parameters
+build_url = f"{JENKINS_URL}/job/{JOB_NAME}/buildWithParameters"
+headers = {crumb_field: crumb}
+response = requests.post(build_url, auth=HTTPBasicAuth(JENKINS_USERNAME, JENKINS_PASSWORD), headers=headers, params=job_parameters)
+response.raise_for_status()
+
+# Initialize Jenkins server connection
+server = jenkins.Jenkins(JENKINS_URL, username=JENKINS_USERNAME, password=JENKINS_PASSWORD)
+
+# Get queue item number from Location header
+queue_item_number = response.headers['Location'].split('/')[-2]
+
+# Get build number from queue item
+def get_build_number_from_queue_item(queue_item_number):
+    queue_info = server.get_queue_item(queue_item_number)
+    if 'executable' in queue_info:
+        return queue_info['executable']['number']
+    return None
+
+# Wait for the build to be assigned a build number
+build_number = None
+while build_number is None:
+    build_number = get_build_number_from_queue_item(queue_item_number)
+    time.sleep(5)  # Sleep for 5 seconds before checking again
+
+# Function to get the build info
+def get_build_info(job_name, build_number):
+    try:
+        build_info = server.get_build_info(job_name, build_number)
+        return build_info
+    except jenkins.NotFoundException:
+        return None
+
+# Wait for the build to complete
+while True:
+    build_info = get_build_info(JOB_NAME, build_number)
+    if build_info is not None:
+        if not build_info['building']:
+            break
+    time.sleep(10)  # Sleep for 10 seconds before checking again
+
+# Print build result
+build_info = get_build_info(JOB_NAME, build_number)
+if build_info is not None:
+    print(f"Build Number: {build_info['number']}")
+    print(f"Build Status: {build_info['result']}")
+else:
+    print("Build information could not be retrieved.")
+```
+
+### Explanation of Changes:
+
+1. **Trigger Build with Parameters and Crumb using `requests`:**
+   - `build_url`: Constructs the URL for the Jenkins job build with parameters.
+   - `headers`: Contains the crumb field and value.
+   - `requests.post`: Triggers the Jenkins job with parameters and crumb using a POST request.
+
+2. **Get Queue Item Number from Location Header:**
+   - The response from triggering the build contains a `Location` header with the queue item URL. Extract the queue item number from this URL.
+
+3. **Remaining Script:**
+   - The rest of the script remains the same, using `python-jenkins` to get the build number and wait for build completion.
+
+Replace `JENKINS_URL`, `JENKINS_USERNAME`, `JENKINS_PASSWORD`, `JOB_NAME`, and the job parameters with your actual Jenkins server details, job name, and parameters. This script will handle CSRF protection by fetching a crumb, trigger the specified Jenkins job with the given parameters, wait until it is completed, and then print the build result.
