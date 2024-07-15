@@ -1,0 +1,104 @@
+Automating mainframe screens from a Windows environment can be done using various tools and programming languages. One common approach is to use terminal emulation software combined with scripting languages to interact with the mainframe screens programmatically. Here's a general outline of how you can achieve this:
+
+1. **Choose a Terminal Emulator**: Select a terminal emulator that supports scripting and automation. Some popular options include:
+   - **IBM Personal Communications**
+   - **Rocket BlueZone**
+   - **Micro Focus Rumba**
+   - **Attachmate Extra!**
+
+2. **Install Required Software**: Ensure the terminal emulator and any necessary libraries or plugins are installed on your Windows environment.
+
+3. **Set Up Scripting Environment**: Depending on the terminal emulator you choose, you might use different scripting languages. Common choices include:
+   - **VBScript** or **PowerShell** for Windows-centric automation.
+   - **Python** with libraries like `py3270` or `pyautogui`.
+
+4. **Create a Script to Automate Tasks**: Write a script to interact with the mainframe screens. This typically involves:
+   - Connecting to the mainframe via the terminal emulator.
+   - Navigating through screens by sending keystrokes.
+   - Reading screen data to make decisions or extract information.
+   - Sending commands or input to perform desired tasks.
+
+Here's a basic example using Python with the `py3270` library:
+
+### Example with Python and `py3270`
+
+1. **Install `py3270`**:
+   ```sh
+   pip install py3270
+   ```
+
+2. **Create a Script**:
+
+   ```python
+   from py3270 import Emulator
+
+   # Initialize emulator
+   emulator = Emulator(visible=True)  # Set visible=False to run in the background
+
+   # Connect to the mainframe
+   emulator.connect('HOSTNAME_OR_IP')
+
+   # Wait for connection
+   emulator.wait_for_field()
+
+   # Log in
+   emulator.send_string('USERNAME', ypos, xpos)  # Replace ypos and xpos with appropriate coordinates
+   emulator.send_enter()
+   emulator.send_string('PASSWORD', ypos, xpos)
+   emulator.send_enter()
+
+   # Wait for the next screen
+   emulator.wait_for_field()
+
+   # Navigate to a specific screen
+   emulator.send_string('COMMAND', ypos, xpos)
+   emulator.send_enter()
+
+   # Read screen data
+   screen_text = emulator.screen.get_text(1, 1, 24, 80)  # Adjust coordinates as needed
+
+   # Process data or send further commands
+   # ...
+
+   # Close the emulator
+   emulator.terminate()
+   ```
+
+### Example with VBScript and IBM Personal Communications
+
+1. **Create a VBScript File** (`automate.vbs`):
+
+   ```vbscript
+   Set AutSess = CreateObject("PCOMM.autECLSession")
+   AutSess.SetConnectionByName("A")  ' A corresponds to the session ID
+
+   AutSess.autECLOIA.WaitForAppAvailable
+   AutSess.autECLOIA.WaitForInputReady
+
+   ' Log in
+   AutSess.autECLPS.SendKeys "USERNAME"
+   AutSess.autECLPS.SendKeys "[enter]"
+   AutSess.autECLPS.SendKeys "PASSWORD"
+   AutSess.autECLPS.SendKeys "[enter]"
+
+   ' Wait for the next screen
+   AutSess.autECLOIA.WaitForInputReady
+
+   ' Navigate to a specific screen
+   AutSess.autECLPS.SendKeys "COMMAND"
+   AutSess.autECLPS.SendKeys "[enter]"
+
+   ' Read screen data
+   screenText = AutSess.autECLPS.GetText(1, 1, 24, 80)
+
+   ' Process data or send further commands
+   ' ...
+   ```
+
+### Notes:
+
+- Ensure the terminal emulator session is configured correctly (e.g., session ID, host connection settings).
+- Adjust the screen coordinates (`ypos`, `xpos`) to match the specific layout of your mainframe screens.
+- Use error handling to manage unexpected screen states or connection issues.
+
+These examples provide a starting point for automating mainframe interactions from a Windows environment. Depending on your specific requirements and the mainframe application's complexity, you might need to extend and customize the scripts further.
