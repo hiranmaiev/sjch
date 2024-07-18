@@ -1,0 +1,105 @@
+To send the signed SOAP request to a server and receive a response, you can use the `requests` library in Python. Here's the complete process, including signing the request and sending it to a server:
+
+### Step 1: Convert JKS to PEM
+(As explained in the previous answer)
+
+### Step 2: Install Required Libraries
+Install the necessary libraries:
+
+```sh
+pip install requests xmlsec lxml
+```
+
+### Step 3: Create and Sign the SOAP Request
+
+Here's an updated Python script that includes signing the SOAP request and sending it to a server:
+
+```python
+import xmlsec
+from lxml import etree
+import requests
+
+# Load your PEM file (certificate and private key)
+def load_pem(pem_file):
+    with open(pem_file, 'rb') as f:
+        pem_data = f.read()
+    return pem_data
+
+pem_data = load_pem('mykeystore.pem')
+
+# Parse your SOAP request
+soap_request = '''
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:MyRequest>
+         <!--Optional:-->
+         <tem:MyParameter>123</tem:MyParameter>
+      </tem:MyRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
+'''
+
+doc = etree.fromstring(soap_request)
+
+# Initialize xmlsec
+manager = xmlsec.KeysManager()
+manager.load_cert_from_memory(pem_data, xmlsec.constants.KeyDataFormatPem)
+
+# Sign the SOAP request
+sign_ctx = xmlsec.SignatureContext(manager)
+sign_node = xmlsec.template.create(
+    doc,
+    xmlsec.constants.TransformExclC14N,
+    xmlsec.constants.TransformRsaSha256,
+    ns='ds',
+)
+
+# Append the Signature node to the SOAP Header
+header = doc.find('.//{http://schemas.xmlsoap.org/soap/envelope/}Header')
+header.append(sign_node)
+
+# Add KeyInfo to the Signature node
+key_info = xmlsec.template.ensure_key_info(sign_node)
+xmlsec.template.add_x509_data(key_info)
+
+# Sign the document
+sign_ctx.sign(sign_node)
+
+# Convert the signed XML to string
+signed_soap_request = etree.tostring(doc, pretty_print=True).decode()
+
+# Print signed SOAP request (for debugging)
+print("Signed SOAP Request:")
+print(signed_soap_request)
+
+# Send the signed SOAP request to the server
+url = 'https://example.com/soap-endpoint'
+headers = {'Content-Type': 'text/xml; charset=utf-8'}
+
+response = requests.post(url, data=signed_soap_request, headers=headers)
+
+# Print the server response
+print("Server Response:")
+print(response.text)
+```
+
+### Explanation
+
+1. **Load PEM file:** Load the PEM file that was converted from the JKS file.
+2. **Parse SOAP request:** Parse your SOAP request XML.
+3. **Initialize xmlsec:** Initialize the XML Security library with the PEM data.
+4. **Create Signature Template:** Create the signature template and append it to the SOAP Header.
+5. **Add KeyInfo:** Add KeyInfo to the Signature node to include the X509 data.
+6. **Sign the document:** Sign the document using the private key.
+7. **Convert to string:** Convert the signed XML document to a string format.
+8. **Send the request:** Use the `requests` library to send the signed SOAP request to the server.
+9. **Print the response:** Print the server's response for debugging or further processing.
+
+### Notes
+
+- Ensure the XML namespaces and elements match your actual SOAP request structure.
+- Replace `https://example.com/soap-endpoint` with the actual URL of the SOAP service you're calling.
+- Adjust headers and any additional request settings as required by the SOAP service.
+
+If you have any further questions or specific requirements, feel free to ask!
