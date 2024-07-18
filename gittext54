@@ -1,0 +1,100 @@
+To sign a WSDL request body using a Java Keystore (JKS) file in Python, you'll typically need to convert the JKS file to a format that Python can handle, such as a PEM file. Then you can use libraries like `xmlsec` to sign the SOAP request. Here’s a step-by-step guide on how to achieve this:
+
+### Step 1: Convert JKS to PEM
+You can use `keytool` and `openssl` to convert the JKS file to PEM format. This is a two-step process:
+
+1. **Export the certificate and private key from JKS:**
+
+```sh
+keytool -importkeystore -srckeystore mykeystore.jks -destkeystore mykeystore.p12 -srcstoretype jks -deststoretype pkcs12 -srcstorepass changeit -deststorepass changeit -srcalias myalias
+```
+
+2. **Convert the PKCS12 (.p12) file to PEM:**
+
+```sh
+openssl pkcs12 -in mykeystore.p12 -out mykeystore.pem -nodes
+```
+
+### Step 2: Use xmlsec to sign the SOAP request
+
+Install `xmlsec` library:
+
+```sh
+pip install xmlsec
+```
+
+### Step 3: Sign the SOAP request
+
+Here’s a Python script to sign the SOAP request:
+
+```python
+import xmlsec
+from lxml import etree
+
+# Load your PEM file (certificate and private key)
+def load_pem(pem_file):
+    with open(pem_file, 'rb') as f:
+        pem_data = f.read()
+    return pem_data
+
+pem_data = load_pem('mykeystore.pem')
+
+# Parse your SOAP request
+soap_request = '''
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tem="http://tempuri.org/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:MyRequest>
+         <!--Optional:-->
+         <tem:MyParameter>123</tem:MyParameter>
+      </tem:MyRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
+'''
+
+doc = etree.fromstring(soap_request)
+
+# Initialize xmlsec
+manager = xmlsec.KeysManager()
+manager.load_cert_from_memory(pem_data, xmlsec.constants.KeyDataFormatPem)
+
+# Sign the SOAP request
+sign_ctx = xmlsec.SignatureContext(manager)
+sign_node = xmlsec.template.create(
+    doc,
+    xmlsec.constants.TransformExclC14N,
+    xmlsec.constants.TransformRsaSha256,
+    ns='ds',
+)
+
+# Append the Signature node to the SOAP Header
+header = doc.find('.//{http://schemas.xmlsoap.org/soap/envelope/}Header')
+header.append(sign_node)
+
+# Add KeyInfo to the Signature node
+key_info = xmlsec.template.ensure_key_info(sign_node)
+xmlsec.template.add_x509_data(key_info)
+
+# Sign the document
+sign_ctx.sign(sign_node)
+
+# Print signed SOAP request
+print(etree.tostring(doc, pretty_print=True).decode())
+
+```
+
+### Explanation
+
+1. **Load PEM file:** Load the PEM file that was converted from the JKS file.
+2. **Parse SOAP request:** Parse your SOAP request XML.
+3. **Initialize xmlsec:** Initialize the XML Security library with the PEM data.
+4. **Create Signature Template:** Create the signature template and append it to the SOAP Header.
+5. **Add KeyInfo:** Add KeyInfo to the Signature node to include the X509 data.
+6. **Sign the document:** Sign the document using the private key.
+
+### Notes
+
+- Ensure the XML namespaces and elements match your actual SOAP request structure.
+- The above script assumes the PEM file contains both the certificate and private key.
+
+If you have specific requirements or run into issues, let me know, and I can provide further assistance.
