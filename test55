@@ -1,0 +1,74 @@
+To automate interactions with a mainframe screen using Robot Framework, you can use the `Mainframe3270` library. This library provides a set of keywords to interact with IBM 3270 mainframes.
+
+First, you need to install the `robotframework-mainframe3270` library. You can install it using pip:
+
+```bash
+pip install robotframework-mainframe3270
+```
+
+Here's an example of how you can use Robot Framework with the `Mainframe3270` library to get text from a mainframe screen:
+
+1. **Install dependencies:**
+   - Ensure you have Robot Framework and the `Mainframe3270` library installed.
+
+2. **Create a Robot Framework Test Suite:**
+
+   ```robot
+   *** Settings ***
+   Library    Mainframe3270
+
+   *** Variables ***
+   ${HOST}      mainframe_ip_address
+   ${PORT}      23
+   ${USER}      your_username
+   ${PASSWORD}  your_password
+
+   *** Test Cases ***
+   Get Screen Text
+       Open Connection    ${HOST}    ${PORT}
+       Change Wait Time    1.0
+       ${login_screen_text}    Read Screen    1    24    # Read the entire screen (lines 1 to 24)
+       Log    ${login_screen_text}
+       Write Bare    ${USER}
+       Send Enter
+       Write Bare    ${PASSWORD}
+       Send Enter
+       ${main_menu_text}    Read Screen    1    24    # Read the entire screen (lines 1 to 24)
+       Log    ${main_menu_text}
+       Close Connection
+   ```
+
+### Explanation
+
+1. **Settings Section:**
+   - Import the `Mainframe3270` library.
+
+2. **Variables Section:**
+   - Define variables for the mainframe connection parameters, including host IP, port, username, and password.
+
+3. **Test Cases Section:**
+   - **Open Connection:** Open a connection to the mainframe using the specified host and port.
+   - **Change Wait Time:** Optionally change the wait time to 1 second.
+   - **Read Screen:** Read text from the entire screen (from line 1 to 24) and store it in a variable.
+   - **Log:** Log the text read from the screen.
+   - **Write Bare and Send Enter:** Send the username and password to the mainframe login screen.
+   - **Read Screen:** Read text from the main menu screen after logging in.
+   - **Log:** Log the text read from the main menu screen.
+   - **Close Connection:** Close the connection to the mainframe.
+
+### Running the Test
+
+Save the above test case in a `.robot` file (e.g., `mainframe_test.robot`). Then, run it using the following command:
+
+```bash
+robot mainframe_test.robot
+```
+
+This script will connect to the mainframe, log in using the provided credentials, read and log the text from the initial login screen and the main menu screen, and then close the connection.
+
+### Customizing for Your Environment
+
+- Adjust the `Read Screen` keyword parameters if your screen layout is different.
+- Modify the script to include additional interactions as needed.
+
+This approach uses Robot Framework to automate mainframe screen interactions and extract text, which can be useful for various automation tasks.
