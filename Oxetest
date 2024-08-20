@@ -1,0 +1,71 @@
+To capture a specific part of the screen as an image using the `RPA.Desktop` library and then perform OCR on that image, you can use the `Screenshot` keyword to take a screenshot of the desired area. Here’s how you can do it:
+
+### Step 1: Capture a Specific Part of the Screen
+
+The `RPA.Desktop` library allows you to capture a specific part of the screen by defining a region with coordinates (left, top, width, height). 
+
+Here's an example test case:
+
+```robot
+*** Settings ***
+Library    RPA.Desktop
+Library    RPA.FileSystem
+
+*** Test Cases ***
+Capture Part of Screen and Perform OCR
+    [Documentation]    Capture a specific part of the screen and perform OCR to recognize both numbers and characters.
+    
+    # Define the region you want to capture (left, top, width, height)
+    ${left}    Set Variable    100
+    ${top}     Set Variable    200
+    ${width}   Set Variable    300
+    ${height}  Set Variable    100
+    
+    # Capture the specified part of the screen
+    ${image_path}    Capture Region    ${left}    ${top}    ${width}    ${height}
+    
+    # Set custom Tesseract configurations
+    ${config}        Set Variable    --psm 6 -c tessedit_char_whitelist=0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+    
+    # Perform OCR on the captured image
+    ${text}    ${confidence}    OCR    ${image_path}    config=${config}
+    
+    # Log the recognized text
+    Log    ${text}
+    
+    # Optionally, remove the image after processing
+    Remove File    ${image_path}
+
+*** Keywords ***
+Capture Region
+    [Arguments]    ${left}    ${top}    ${width}    ${height}
+    ${image_path}    Take Screenshot    region=${left},${top},${width},${height}
+    [Return]    ${image_path}
+```
+
+### Explanation:
+
+1. **Region Definition:** 
+    - `left`, `top`: The starting coordinates (in pixels) for the top-left corner of the region you want to capture.
+    - `width`, `height`: The width and height of the region in pixels.
+
+2. **Take Screenshot:**
+    - `Take Screenshot` captures the specified region and saves it as an image file. The file path is returned and stored in `${image_path}`.
+
+3. **Perform OCR:** 
+    - The captured image is passed to the `OCR` keyword along with the custom Tesseract configurations (such as character whitelist). This processes the image to recognize both numbers and characters.
+
+4. **Remove File:** 
+    - Optionally, you can remove the image file after OCR processing to clean up.
+
+### Step 2: Run the Test
+
+You can run the test case with the following command:
+
+```bash
+robot path_to_your_test_file.robot
+```
+
+### Summary
+
+This test case allows you to capture a specific part of the screen, save it as an image, and then perform OCR on that image using `RPA.Desktop`. The captured image is processed with custom Tesseract configurations to recognize both numbers and characters.
