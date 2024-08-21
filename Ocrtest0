@@ -1,0 +1,81 @@
+To implement the functionality of removing a dot from the "0" in an image using the Robot Framework, you can use the `Python` keyword along with custom Python code. Below is an example of how to integrate the code provided earlier into a Robot Framework test case.
+
+### Setup
+1. **Install Robot Framework**: 
+   ```bash
+   pip install robotframework
+   ```
+
+2. **Install OpenCV**:
+   ```bash
+   pip install opencv-python
+   ```
+
+3. **Create a Python Library**:
+   Create a Python file that contains the function to remove the dot from the "0".
+
+### Python Library File (`ImageProcessor.py`)
+```python
+import cv2
+import numpy as np
+
+def remove_dot_from_zero(image_path, output_path):
+    # Load the image
+    image = cv2.imread(image_path)
+
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Use thresholding to identify the dot
+    _, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+
+    # Find contours (which should include the dot)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Loop through contours to find and remove the dot
+    for contour in contours:
+        if cv2.contourArea(contour) < 50:  # Adjust the area threshold as needed
+            x, y, w, h = cv2.boundingRect(contour)
+            if w < 20 and h < 20:  # Assuming the dot is small compared to the "0"
+                # Fill the dot with white color (assuming a white background)
+                cv2.rectangle(image, (x, y), (x + w, y + h), (255, 255, 255), -1)
+
+    # Save the result
+    cv2.imwrite(output_path, image)
+```
+
+### Robot Framework Test Case
+Next, create a Robot Framework test case that uses this library.
+
+### Test Case File (`RemoveDot.robot`)
+```robot
+*** Settings ***
+Library    ImageProcessor.py
+
+*** Test Cases ***
+Remove Dot From Zero In Image
+    [Documentation]    Test case to remove a dot from the number "0" in an image.
+    [Tags]    ImageProcessing
+    Remove Dot    input_image.png    output_image.png
+
+*** Keywords ***
+Remove Dot
+    [Arguments]    ${input_image}    ${output_image}
+    Remove Dot From Zero    ${input_image}    ${output_image}
+```
+
+### Explanation:
+1. **Library**: The custom Python library `ImageProcessor.py` is imported.
+2. **Test Case**: The `Remove Dot From Zero In Image` test case calls the `Remove Dot` keyword, which internally uses the `Remove Dot From Zero` function from the Python library.
+3. **Arguments**: The input image (`input_image.png`) and the output image (`output_image.png`) are passed as arguments.
+
+### Running the Test Case
+Run the test case using the Robot Framework command:
+
+```bash
+robot RemoveDot.robot
+```
+
+This setup will process the image as specified, removing the dot from the "0" and saving the output image with the dot removed.
+
+Make sure that the image files (`input_image.png` and `output_image.png`) are in the correct directory, or adjust the file paths accordingly.
