@@ -1,0 +1,136 @@
+Handling errors in the background task and screenshot-taking process is crucial to ensure that the Robot Framework test suite doesn't fail unexpectedly and that errors are logged properly. You can enhance the error handling in the Python library by catching exceptions during the background task execution or when taking screenshots, and logging them accordingly.
+
+Here’s how you can handle errors:
+
+### Step 1: Add Error Handling in the Python Library
+
+You can use `try-except` blocks in the `BackgroundTasks.py` file to catch and handle errors. If an error occurs during screenshot-taking or background task execution, it will be logged, and the test can continue running.
+
+Here's an updated version of the Python library with error handling:
+
+```python
+import threading
+import time
+import os
+from datetime import datetime
+from robot.libraries.BuiltIn import BuiltIn  # Import Robot Framework's BuiltIn library
+
+class BackgroundTasks:
+    def __init__(self, base_directory=None):
+        self.take_screenshot = False
+        self.screenshot_lock = threading.Lock()  # To coordinate screenshot requests
+        self.base_directory = base_directory or os.getcwd()  # Default to current working directory if not provided
+
+    def start_background_task(self, task_duration=30):
+        """Starts a background task that will run for `task_duration` seconds."""
+        thread = threading.Thread(target=self._background_task, args=(task_duration,))
+        thread.daemon = True
+        thread.start()
+
+    def request_screenshot(self):
+        """Request a screenshot to be taken by the background task."""
+        with self.screenshot_lock:
+            self.take_screenshot = True
+
+    def _background_task(self, task_duration):
+        """Background task that takes screenshots when requested."""
+        try:
+            print("Background task started!")
+            for i in range(task_duration):
+                time.sleep(1)
+                print(f"Background task running... {i + 1}/{task_duration} seconds")
+
+                # Check if a screenshot request has been made
+                with self.screenshot_lock:
+                    if self.take_screenshot:
+                        self._take_screenshot()
+                        self.take_screenshot = False
+
+            print("Background task completed!")
+        except Exception as e:
+            print(f"Error in background task: {str(e)}")
+            BuiltIn().log(f"Error in background task: {str(e)}", 'ERROR')
+
+    def _take_screenshot(self):
+        """Take a screenshot using Robot Framework's Take Screenshot keyword with a timestamped filename in a test case directory."""
+        try:
+            # Get the current test case name
+            test_case_name = BuiltIn().get_variable_value('${TEST NAME}')
+            # Clean the test case name to make it file-system safe
+            safe_test_case_name = test_case_name.replace(' ', '_').replace('/', '_')
+            
+            # Create a directory for the test case if it doesn't exist
+            test_case_directory = os.path.join(self.base_directory, safe_test_case_name)
+            if not os.path.exists(test_case_directory):
+                os.makedirs(test_case_directory)
+            
+            # Generate a timestamped screenshot filename
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            screenshot_name = f'screenshot_{timestamp}.png'
+            screenshot_path = os.path.join(test_case_directory, screenshot_name)  # Full path to save the screenshot
+            
+            print(f"Taking screenshot: {screenshot_path}")
+            BuiltIn().run_keyword('Take Screenshot', screenshot_path)  # Pass the full path to Take Screenshot
+        except Exception as e:
+            print(f"Error taking screenshot: {str(e)}")
+            BuiltIn().log(f"Error taking screenshot: {str(e)}", 'ERROR')
+```
+
+### Key Error Handling Updates
+
+1. **Try-Except Blocks**: 
+   - **In the `_background_task` method**: This ensures that any errors that occur during the background task execution (e.g., timing issues, thread management) are caught, logged, and won't interrupt the rest of the test suite.
+   - **In the `_take_screenshot` method**: This captures errors that may occur when trying to take screenshots (e.g., missing permissions, issues with the file path) and logs them.
+
+2. **Logging Errors to Robot Framework**: 
+   - **`BuiltIn().log(f"Error ...", 'ERROR')`**: This logs errors to Robot Framework’s logs with a severity level of `ERROR`. This way, errors will show up in the Robot Framework log files, allowing you to review what went wrong without crashing the test execution.
+   
+3. **Graceful Continuation**: The `try-except` blocks allow the test case to continue running even if an error occurs, ensuring that one failure doesn’t interrupt the entire test suite.
+
+### Step 2: Test Suite Example
+
+Here’s how you can run the test suite as before. If an error occurs, it will be logged, but the suite will continue executing:
+
+```robot
+*** Settings ***
+Library    BackgroundTasks.py    /path/to/base/directory   # Specify base directory for all test case folders
+
+*** Test Cases ***
+Test Case 1 - With Error Handling
+    [Documentation]    This test creates a directory named after the test case and saves screenshots with timestamped filenames.
+    
+    Start Background Task    30   # Run background task for 30 seconds
+    
+    Log    Running test case...
+    Sleep    5s
+    
+    Request Screenshot    # Request a screenshot from the background task
+    
+    Log    Doing some other work...
+    Sleep    10s
+    
+    Request Screenshot    # Request another screenshot
+    
+    Log    Test case completed!
+```
+
+### Step 3: Review the Logs
+
+After the test run, you can review the log files generated by Robot Framework to see if any errors were logged.
+
+- **Errors in background task**: These will be logged with the prefix `"Error in background task"`.
+- **Errors in screenshot-taking**: These will be logged with the prefix `"Error taking screenshot"`.
+
+### Example Scenarios Handled
+
+1. **Directory Creation Fails**: If the directory for the test case cannot be created (e.g., due to missing permissions), the error will be logged, but the test case will not crash.
+   
+2. **Screenshot Fails**: If taking a screenshot fails (e.g., due to display or file path issues), the error will be logged, but the background task will continue.
+
+3. **Unexpected Errors**: Any unexpected exceptions in the background task or during the screenshot process will be caught and logged.
+
+### Conclusion
+
+By adding `try-except` blocks and logging errors to Robot Framework, we ensure that the test suite runs smoothly even if errors occur in the background task or while taking screenshots. The test case will not fail immediately due to these errors, and detailed logs will be available for post-execution review. 
+
+Let me know if you need further adjustments!
