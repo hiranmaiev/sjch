@@ -1,0 +1,103 @@
+Here's a simple Java bean that can parse a YAML file using Jackson and SnakeYAML libraries. You need to include the following dependencies in your `pom.xml` if you're using Maven:
+
+```xml
+<dependencies>
+    <!-- Jackson Data Format: YAML -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>2.14.2</version> <!-- Or latest version -->
+    </dependency>
+
+    <!-- SnakeYAML -->
+    <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>2.0</version> <!-- Or latest version -->
+    </dependency>
+</dependencies>
+```
+
+Now, the Java bean class:
+
+```java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+import java.io.File;
+import java.io.IOException;
+
+public class YamlParser {
+
+    private String name;
+    private int age;
+    private String occupation;
+
+    // Getters and setters
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public String getOccupation() {
+        return occupation;
+    }
+
+    public void setOccupation(String occupation) {
+        this.occupation = occupation;
+    }
+
+    // Method to parse YAML file and map it to the bean
+    public static YamlParser parseYaml(File yamlFile) throws IOException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        return mapper.readValue(yamlFile, YamlParser.class);
+    }
+
+    @Override
+    public String toString() {
+        return "YamlParser{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                ", occupation='" + occupation + '\'' +
+                '}';
+    }
+
+    public static void main(String[] args) {
+        try {
+            // Specify the YAML file path
+            File yamlFile = new File("data.yaml");
+
+            // Parse the YAML file
+            YamlParser yamlData = YamlParser.parseYaml(yamlFile);
+
+            // Print the parsed data
+            System.out.println(yamlData);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Example `data.yaml` file:
+
+```yaml
+name: John Doe
+age: 30
+occupation: Software Engineer
+```
+
+### Explanation:
+- The `ObjectMapper` from Jackson, combined with `YAMLFactory`, reads the YAML file and maps it to the `YamlParser` class.
+- The `YamlParser` class has fields like `name`, `age`, and `occupation`, which are populated by the YAML file content.
