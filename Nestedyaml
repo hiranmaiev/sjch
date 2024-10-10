@@ -1,0 +1,152 @@
+To deserialize nested YAML structures into Java objects using the Jackson library, you can use the `jackson-databind` and `jackson-dataformat-yaml` modules. Below is an example of a Java Bean and code for parsing a nested YAML structure.
+
+### 1. Add Dependencies
+Ensure you have the necessary dependencies in your `pom.xml` for Maven:
+
+```xml
+<dependencies>
+    <!-- Jackson Core -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>2.15.0</version>
+    </dependency>
+    
+    <!-- Jackson Databind -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.15.0</version>
+    </dependency>
+    
+    <!-- Jackson YAML -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>2.15.0</version>
+    </dependency>
+</dependencies>
+```
+
+### 2. Sample Nested YAML Structure
+
+```yaml
+parent:
+  name: "John Doe"
+  age: 45
+  child:
+    name: "Jane Doe"
+    age: 18
+```
+
+### 3. Java Beans
+
+You need to create classes that reflect the structure of your YAML file. Here's an example:
+
+```java
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public class Parent {
+    
+    private String name;
+    private int age;
+    private Child child;
+
+    // Getters and Setters
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    public Child getChild() {
+        return child;
+    }
+
+    public void setChild(Child child) {
+        this.child = child;
+    }
+
+    @Override
+    public String toString() {
+        return "Parent{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                ", child=" + child +
+                '}';
+    }
+}
+
+class Child {
+
+    private String name;
+    private int age;
+
+    // Getters and Setters
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    @Override
+    public String toString() {
+        return "Child{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+}
+```
+
+### 4. YAML Deserialization Code
+
+Here's how you can deserialize the YAML into the Java objects:
+
+```java
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import java.io.File;
+import java.io.IOException;
+
+public class YamlExample {
+    
+    public static void main(String[] args) throws IOException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+
+        // Deserialization from YAML file
+        Parent parent = mapper.readValue(new File("parent.yaml"), Parent.class);
+        
+        // Print the deserialized object
+        System.out.println(parent);
+    }
+}
+```
+
+### 5. Explanation
+
+- **YAMLFactory**: This is used to tell Jackson to read and write YAML.
+- **ObjectMapper**: The core class for converting between Java objects and YAML (or other formats like JSON).
+- **Parent and Child classes**: These represent the nested structure of the YAML file. The `Parent` class contains a reference to the `Child` class.
+
+This code will successfully deserialize the YAML into nested Java objects using Jackson.
