@@ -1,0 +1,60 @@
+To check a push notification using Appium and Robot Framework, you’ll first need to open the notification center and then locate the notification elements. Here’s a guide on how to accomplish this:
+
+### Step 1: Open the Notification Center
+
+As we did before, you can open the notification center using the `Press Keycode` keyword:
+
+```robot
+Open Notifications
+    Press Keycode    79
+```
+
+### Step 2: Locate and Verify the Notification Content
+
+Once the notification center is open, you can use Appium's `find_element` commands to locate and interact with specific notifications. To make this process more structured, you can create a keyword that finds a notification based on its title or content text.
+
+Here's how a complete Robot Framework script might look:
+
+```robot
+*** Settings ***
+Library    AppiumLibrary
+
+*** Variables ***
+${ANDROID_HOME}    <path_to_android_sdk>  # Set this to your Android SDK path
+${DEVICE_NAME}     Android Emulator
+${PLATFORM_NAME}   Android
+${PLATFORM_VERSION} 12  # Change as per your Android version
+${APP_PACKAGE}     com.android.settings
+${APP_ACTIVITY}    .Settings
+
+*** Test Cases ***
+Check Push Notification
+    [Tags]    Notification
+    Open Application  http://localhost:4723/wd/hub   platformName=${PLATFORM_NAME}   platformVersion=${PLATFORM_VERSION}   deviceName=${DEVICE_NAME}   appPackage=${APP_PACKAGE}   appActivity=${APP_ACTIVITY}
+    Open Notifications
+    Verify Notification By Text    Your Notification Title or Content
+    Close Application
+
+*** Keywords ***
+Open Notifications
+    Press Keycode    79
+
+Verify Notification By Text
+    [Arguments]    ${notification_text}
+    ${elements}=    Get WebElements    //android.widget.TextView[contains(@text, "${notification_text}")]
+    Should Not Be Empty    ${elements}    Notification with text "${notification_text}" not found.
+    Log    Notification with text "${notification_text}" is present.
+```
+
+### Explanation of the Script
+
+1. **Open Notifications**: This keyword opens the notification center using keycode `79`.
+  
+2. **Verify Notification By Text**: This keyword takes `notification_text` as an argument, which should be part of the notification title or content you want to verify.
+
+   - The `Get WebElements` locator uses an XPath expression to find any `TextView` containing the specified text.
+   - `Should Not Be Empty` checks if any elements match the criteria; if none are found, it will fail the test with a descriptive error.
+
+### Notes
+- Adjust `notification_text` in `Verify Notification By Text` to match the expected text in your push notification.
+- Depending on the Android version or the app pushing notifications, notification structure may vary, so you might need to adapt the locator accordingly.
