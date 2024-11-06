@@ -1,0 +1,49 @@
+To return all the visible text on the screen using **AppiumLibrary** in **Robot Framework**, you can retrieve all `TextView` elements (on Android) or equivalent text elements based on their class names, and then read the text content from each of them. Here’s a sample code that captures all the visible text elements on the screen and logs them.
+
+### Example Code
+Here’s a Robot Framework test case to capture and return all text elements on the screen:
+
+```robot
+*** Settings ***
+Library    AppiumLibrary
+
+*** Test Cases ***
+Return All Visible Text On Screen
+    # Wait for screen elements to load
+    Sleep    2s
+
+    # Get all visible text elements (using class name for Android)
+    ${text_elements}=    Get Webelements    class=android.widget.TextView
+
+    # Initialize an empty list to store text values
+    ${all_texts}=    Create List
+
+    # Loop through each text element to extract and store the text
+    :FOR    ${element}    IN    @{text_elements}
+    \    ${text}=    Get Text    ${element}
+    \    Append To List    ${all_texts}    ${text}
+
+    # Log all collected text to console
+    Log To Console    All text on screen: ${all_texts}
+
+    # Return all text as output
+    [Return]    ${all_texts}
+```
+
+### Explanation
+
+1. **Get All Text Elements**:
+   - `Get Webelements    class=android.widget.TextView` retrieves all elements on the screen with the class `android.widget.TextView`, which typically represents text elements on Android.
+   
+2. **Extract and Store Text**:
+   - Loop through each element in `${text_elements}`, extract its text with `Get Text`, and append it to `${all_texts}`, which holds all visible text.
+
+3. **Log and Return Text**:
+   - `Log To Console` outputs the collected texts for visibility in the console.
+   - `[Return] ${all_texts}` returns all text values as a list.
+
+### Notes
+
+- **Adapt for iOS**: For iOS, change the class name to match iOS text elements (e.g., `UIAStaticText` for older versions or `XCUIElementTypeStaticText`).
+- **Error Handling**: Add checks if no text elements are found to handle errors or blank screens.
+- **Alternative**: For text elements with specific resource IDs or other properties, use those locators instead of class names.
