@@ -1,0 +1,54 @@
+To read notifications on a mobile device using **AppiumLibrary** in Robot Framework, you can use Appium's `driver` to access the notifications. Since Appium does not have a built-in method to directly access notifications, the typical way is to open the notification shade and then retrieve the notification texts. Here’s a step-by-step guide to do this:
+
+### 1. Open the Notification Shade
+You can use the `open_notifications` method from the Appium driver to open the notification panel.
+
+```robot
+*** Settings ***
+Library    AppiumLibrary
+
+*** Test Cases ***
+Read Notifications
+    # Open the notification shade
+    Open Notification Shade
+    
+    # Read notifications (you may need to wait for notifications to be fully loaded)
+    ${notifications}    Get Notifications Text
+    
+    # Log the notification details
+    Log To Console    ${notifications}
+
+*** Keywords ***
+Open Notification Shade
+    # Direct call to open the notification panel
+    Execute Script    mobile: openNotifications
+
+Get Notifications Text
+    # Locate the notification text elements (resource-id or xpath may vary by Android version)
+    ${elements}=    Get Webelements    xpath=//android.widget.TextView[@resource-id='android:id/title']
+    ${notifications}=    Create List
+    :FOR    ${element}    IN    @{elements}
+    \    ${text}=    Get Text    ${element}
+    \    Append To List    ${notifications}    ${text}
+    [Return]    ${notifications}
+```
+
+### Explanation of Steps
+
+1. **Open Notification Shade**:
+   - Use `Execute Script` with `mobile: openNotifications`, which tells Appium to open the notification shade.
+
+2. **Get Notifications Text**:
+   - Locate notification titles using an XPath selector or resource ID. The XPath in the example above (`//android.widget.TextView[@resource-id='android:id/title']`) is common, but it may vary based on the Android version and device type.
+   - Loop through each notification element to retrieve its text and store it in a list.
+
+3. **Log Notifications**:
+   - Log the retrieved notifications to see the titles in the console.
+
+### Notes
+
+- **Resource ID**: The example uses `android:id/title`, which is the typical resource ID for notification titles, but you may need to inspect your device's notification structure to confirm this.
+- **Permissions**: Ensure that your Appium setup has permissions to access notifications.
+- **Timing**: Sometimes notifications may take a moment to load, so you might need to add a `Sleep` keyword after opening the notification shade.
+
+This script will help retrieve and log notification texts directly through Robot Framework and Appium.
