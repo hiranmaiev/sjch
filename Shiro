@@ -1,0 +1,193 @@
+To deploy **Apache Shiro** on Tomcat and use it as a password vault, you will need to integrate it into a Java web application. This guide will walk you through the steps to set up, configure, and deploy Apache Shiro on Tomcat.
+
+---
+
+## **Steps to Deploy Apache Shiro on Tomcat**
+
+### **1. Create a Java Web Application**
+
+1. **Set Up a Maven Project**  
+   Use Maven to create a new Java web application.
+
+   ```bash
+   mvn archetype:generate -DgroupId=com.example.shiro -DartifactId=shiro-vault -DarchetypeArtifactId=maven-archetype-webapp -DinteractiveMode=false
+   ```
+
+2. **Add Dependencies**  
+   Include Apache Shiro dependencies in your `pom.xml`:
+
+   ```xml
+   <dependencies>
+       <dependency>
+           <groupId>org.apache.shiro</groupId>
+           <artifactId>shiro-core</artifactId>
+           <version>1.12.0</version>
+       </dependency>
+       <dependency>
+           <groupId>org.apache.shiro</groupId>
+           <artifactId>shiro-web</artifactId>
+           <version>1.12.0</version>
+       </dependency>
+       <dependency>
+           <groupId>javax.servlet</groupId>
+           <artifactId>javax.servlet-api</artifactId>
+           <version>4.0.1</version>
+           <scope>provided</scope>
+       </dependency>
+   </dependencies>
+   ```
+
+---
+
+### **2. Implement Password Vault Logic**
+
+Create a class for password encryption and storage. You can store the encrypted passwords in memory, a database, or a file.
+
+#### Example: Password Manager Class
+```java
+package com.example.shiro;
+
+import org.apache.shiro.crypto.hash.DefaultHashService;
+import org.apache.shiro.crypto.hash.HashRequest;
+import org.apache.shiro.util.ByteSource;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class PasswordVault {
+    private final DefaultHashService hashService;
+    private final Map<String, String> passwordStore;
+
+    public PasswordVault() {
+        hashService = new DefaultHashService();
+        hashService.setHashAlgorithmName("SHA-256");
+        hashService.setHashIterations(5000);
+        passwordStore = new HashMap<>();
+    }
+
+    public String encryptPassword(String plainPassword) {
+        HashRequest request = new HashRequest.Builder()
+                .setAlgorithmName("SHA-256")
+                .setSource(ByteSource.Util.bytes(plainPassword))
+                .setIterations(5000)
+                .build();
+        return hashService.computeHash(request).toHex();
+    }
+
+    public void storePassword(String username, String encryptedPassword) {
+        passwordStore.put(username, encryptedPassword);
+    }
+
+    public boolean verifyPassword(String username, String plainPassword) {
+        String storedHash = passwordStore.get(username);
+        if (storedHash == null) return false;
+        return storedHash.equals(encryptPassword(plainPassword));
+    }
+}
+```
+
+---
+
+### **3. Configure Apache Shiro**
+
+Shiro uses an `ini` file for configuration.
+
+#### `shiro.ini`:
+Place the `shiro.ini` file in the `WEB-INF/classes` directory.
+
+```ini
+[main]
+passwordVault = com.example.shiro.PasswordVault
+
+[urls]
+/login = anon
+/logout = logout
+/** = authc
+```
+
+---
+
+### **4. Add a Login Servlet**
+
+Create a login endpoint to accept and verify passwords.
+
+#### Example: `LoginServlet`
+```java
+package com.example.shiro;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+@WebServlet("/login")
+public class LoginServlet extends HttpServlet {
+    private final PasswordVault passwordVault;
+
+    public LoginServlet() {
+        this.passwordVault = new PasswordVault();
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+
+        if (passwordVault.verifyPassword(username, password)) {
+            response.getWriter().write("Login successful!");
+        } else {
+            response.getWriter().write("Invalid credentials.");
+        }
+    }
+}
+```
+
+---
+
+### **5. Build the WAR File**
+
+Package the application as a WAR file:
+
+```bash
+mvn package
+```
+
+This will generate a `.war` file in the `target` directory.
+
+---
+
+### **6. Deploy on Tomcat**
+
+1. Copy the WAR file (`shiro-vault.war`) to Tomcat's `webapps` directory.
+2. Start Tomcat:
+
+   ```bash
+   ./bin/startup.sh
+   ```
+
+3. Access your application in the browser at:
+
+   ```
+   http://localhost:8080/shiro-vault
+   ```
+
+---
+
+### **7. Verify Password Vault Functionality**
+
+- **Store Password**: Use the `PasswordVault` class to store encrypted passwords.
+- **Verify Password**: The `verifyPassword` method checks whether the provided password matches the stored hash.
+
+---
+
+### **8. Enhance Security**
+
+- Use a **secure database** (e.g., MySQL, PostgreSQL) for password storage instead of an in-memory `Map`.
+- Enable **HTTPS** in Tomcat to secure communication.
+- Use Shiro’s session management to control user access and prevent unauthorized access.
+
+---
+
+Let me know if you need help setting up any specific part!
