@@ -1,0 +1,118 @@
+Yes, you can manually create a Swagger JSON (OpenAPI Specification) for the above servlet. Swagger (or OpenAPI) is a standard for documenting REST APIs, and it can be written in JSON or YAML format.
+
+Here’s an example Swagger JSON for the `ExampleApiServlet`:
+
+---
+
+### Swagger JSON
+```json
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Example API",
+    "description": "API for demonstrating RESTful operations using Servlets",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/example": {
+      "get": {
+        "summary": "Get a welcome message",
+        "description": "Returns a JSON response with a welcome message.",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Hello, this is a GET response!"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Send data and get a response",
+        "description": "Accepts a JSON payload and returns a response with the received data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "example": "value"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Received POST request"
+                    },
+                    "body": {
+                      "type": "string",
+                      "example": "{\"key\": \"value\"}"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+### Explanation of the Swagger JSON:
+
+1. **`info` Section:**
+   - Provides metadata about the API (title, description, version, etc.).
+
+2. **`paths` Section:**
+   - Defines the available endpoints and HTTP methods.
+
+3. **GET Request:**
+   - Includes a `200` response with a simple JSON schema containing a `message`.
+
+4. **POST Request:**
+   - Describes the request body schema (`application/json`).
+   - Returns a `200` response with the received data.
+
+---
+
+### How to Use Swagger JSON:
+1. **Swagger Editor:**
+   - Open [Swagger Editor](https://editor.swagger.io/).
+   - Paste the above JSON to visualize and interact with the API documentation.
+
+2. **Swagger UI Integration:**
+   - Integrate Swagger UI with your Java project to serve this JSON for testing.
+   - Add the Swagger JSON as a static file or dynamically generate it.
+
+3. **Tools for Java Projects:**
+   - Use libraries like **Swagger Core** or **SpringFox** for dynamic Swagger generation if you transition to frameworks like Spring Boot.
+
+Let me know if you need help integrating this into your project!
