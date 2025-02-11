@@ -1,0 +1,48 @@
+import requests
+from requests.auth import HTTPBasicAuth
+import json
+
+# JIRA API Configuration
+JIRA_URL = "https://your-jira-instance.atlassian.net"
+USERNAME = "your-email@example.com"
+API_TOKEN = "your-api-token"  # Generate from JIRA API token settings
+
+# JQL Query to Fetch Defects (Modify as Needed)
+JQL_QUERY = 'project IN ("PROJ1", "PROJ2", "PROJ3") AND issuetype = Bug AND status != Closed ORDER BY created DESC'
+
+# API Endpoint
+API_ENDPOINT = f"{JIRA_URL}/rest/api/2/search"
+
+# Headers
+HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json"
+}
+
+# Request Parameters
+PARAMS = {
+    "jql": JQL_QUERY,
+    "maxResults": 100,  # Adjust based on need
+    "fields": ["key", "summary", "status", "assignee", "created"]
+}
+
+# Make API Request
+response = requests.get(API_ENDPOINT, headers=HEADERS, auth=HTTPBasicAuth(USERNAME, API_TOKEN), params=PARAMS)
+
+# Process Response
+if response.status_code == 200:
+    data = response.json()
+    issues = data.get("issues", [])
+    print(f"Found {len(issues)} defects:")
+    
+    for issue in issues:
+        key = issue["key"]
+        summary = issue["fields"]["summary"]
+        status = issue["fields"]["status"]["name"]
+        assignee = issue["fields"]["assignee"]["displayName"] if issue["fields"]["assignee"] else "Unassigned"
+        created = issue["fields"]["created"]
+        
+        print(f"{key}: {summary} | Status: {status} | Assignee: {assignee} | Created: {created}")
+
+else:
+    print(f"Failed to retrieve defects: {response.status_code}, {response.text}")
